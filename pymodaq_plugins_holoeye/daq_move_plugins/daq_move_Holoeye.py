@@ -1,6 +1,6 @@
 
 import os
-from PyQt5 import QtWidgets
+from qtpy import QtWidgets
 import sys
 sys.path.append(os.getenv("HEDS_PYTHON_MODULES",""))
 from holoeye import slmdisplaysdk
