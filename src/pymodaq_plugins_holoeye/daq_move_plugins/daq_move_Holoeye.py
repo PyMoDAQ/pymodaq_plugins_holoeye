@@ -44,16 +44,16 @@ class DAQ_Move_Holoeye(DAQ_Move_base):
 
     params = [{'title': 'Show Preview?:', 'name': 'show_preview', 'type': 'bool', 'value': False},
               {'title': 'Shaping type:', 'name': 'shaping_type', 'type': 'list', 'value': HoloeyeControls.names()[2],
-               'values': HoloeyeControls.names()},
+               'limits': HoloeyeControls.names()},
               {'title': 'Splitting options:', 'name': 'splitting', 'type': 'group', 'visible': True, 'children': [
                   {'title': 'Splitting control:', 'name': 'split_control', 'type': 'list',
-                   'values': ['Screen spliting', 'GreyA', 'GreyB']},
+                   'limits': ['Screen spliting', 'GreyA', 'GreyB']},
                   {'title': 'Splitting value:', 'name': 'split_value', 'type': 'float', 'value': 0.5, 'min': 0,
                    'max': 1},
                   {'title': 'Grey A value:', 'name': 'greyA_value', 'type': 'int', 'value': 0, 'min': 0, 'max': 255},
                   {'title': 'Grey B value:', 'name': 'greyB_value', 'type': 'int', 'value': 255, 'min': 0, 'max': 255},
                   {'title': 'Splitting direction:', 'name': 'split_dir', 'type': 'list',
-                   'values': ['Horizontal', 'Vertical']},
+                   'limits': ['Horizontal', 'Vertical']},
                   {'title': 'Flipped?:', 'name': 'split_flip', 'type': 'bool', 'value': False},
               ]},
               {'title': 'Calibration:', 'name': 'calibration', 'type': 'group', 'children': [
@@ -66,8 +66,8 @@ class DAQ_Move_Holoeye(DAQ_Move_base):
                   {'title': 'is Multiaxes:', 'name': 'ismultiaxes', 'type': 'bool', 'value': is_multiaxes,
                    'default': False},
                   {'title': 'Status:', 'name': 'multi_status', 'type': 'list', 'value': 'Master',
-                   'values': ['Master', 'Slave']},
-                  {'title': 'Axis:', 'name': 'axis', 'type': 'list', 'values': stage_names},
+                   'limits': ['Master', 'Slave']},
+                  {'title': 'Axis:', 'name': 'axis', 'type': 'list', 'limits': stage_names},
 
               ]}] + comon_parameters
 
