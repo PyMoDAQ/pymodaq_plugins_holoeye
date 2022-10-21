@@ -5,7 +5,7 @@ import sys
 sys.path.append(os.getenv("HEDS_PYTHON_MODULES",""))
 from holoeye import slmdisplaysdk
 from pymodaq.daq_utils.gui_utils import select_file
-from pymodaq.daq_move.utility_classes import DAQ_Move_base
+from pymodaq.control_modules.move_utility_classes import DAQ_Move_base
 from pymodaq.daq_move.utility_classes import comon_parameters
 from pymodaq.daq_utils.daq_utils import ThreadCommand, getLineInfo
 
