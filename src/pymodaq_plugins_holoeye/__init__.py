@@ -12,8 +12,10 @@ for env in os.environ.keys():
     if 'HEDS' in env and 'MODULES' in env:
         environs.append(env)
 
-sorted(environs)
-sys.path.append(os.getenv(environs[0], ''))
+environs = sorted(environs)
+if 'HEDS_PYTHON_MODULES' in environs:
+    environs.remove('HEDS_PYTHON_MODULES', )
+sys.path.append(os.getenv(environs[-1], ''))
 
 
 class Config(BaseConfig):
