@@ -69,7 +69,9 @@ class DAQ_Move_HoloeyeSplitScreen(DAQ_Move_HoloeyeBase):
         else:
             self.controller.showDividedScreenHorizontal(a_gray_value, b_gray_value, screenDivider / 100, flipped)
 
-    def commit_options(self, param):
+    def commit_settings(self, param):
+        super().commit_settings(param)
+
         if self.settings['multiaxes', 'axis'] == 'Screen spliting':
             self.settings.child('bounds', 'max_bound').setValue(100)
             self.controller_units = 'Percent'

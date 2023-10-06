@@ -114,8 +114,6 @@ class DAQ_Move_HoloeyeBase(DAQ_Move_base):
             fname = self.settings['calibration', 'calib_file']
             self.load_calibration(fname)
 
-        self.commit_options(param)
-
     def load_calibration(self, fname: str):
 
         path = Path()
