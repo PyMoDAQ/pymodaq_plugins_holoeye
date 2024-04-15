@@ -3,9 +3,14 @@
 import os
 from pathlib import Path
 import sys
+from pathlib import Path
+from pymodaq.utils.logger import set_logger  # to be imported by other modules.
 
-from pymodaq.utils.config import BaseConfig
+from .utils import Config
+config = Config()
 
+with open(str(Path(__file__).parent.joinpath('resources/VERSION')), 'r') as fvers:
+    __version__ = fvers.read().strip()
 
 environs = []
 for env in os.environ.keys():
@@ -17,8 +22,3 @@ if 'HEDS_PYTHON_MODULES' in environs:
     environs.remove('HEDS_PYTHON_MODULES', )
 sys.path.append(os.getenv(environs[-1], ''))
 
-
-class Config(BaseConfig):
-    """Main class to deal with configuration values for PyMoDAQ"""
-    config_template_path = Path(__file__).parent.joinpath('resources/config_template.toml')
-    config_name = 'config_holoeye'
