@@ -10,13 +10,11 @@ from pathlib import Path
 import pymodaq_plugins_holoeye  # mandatory if not imported from somewhere else to load holeye module from local install
 from holoeye import slmdisplaysdk
 
-from pymodaq.utils.gui_utils import select_file
+
 from pymodaq.control_modules.move_utility_classes import DAQ_Move_base, comon_parameters_fun, main
-from pymodaq.utils.daq_utils import ThreadCommand, getLineInfo
-from pymodaq.utils.h5modules.browsing import browse_data
-from pymodaq.utils.enums import BaseEnum
+
 from pymodaq_plugins_holoeye import Config as HoloConfig
-from pymodaq.utils.logger import set_logger, get_module_name
+from pymodaq_utils.logger import set_logger, get_module_name
 from pymodaq_plugins_holoeye.resources.daq_move_HoloeyeBase import DAQ_Move_HoloeyeBase
 
 
