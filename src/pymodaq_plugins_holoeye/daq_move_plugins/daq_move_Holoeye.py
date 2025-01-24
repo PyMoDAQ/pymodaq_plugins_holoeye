@@ -15,8 +15,8 @@ from pymodaq_gui.utils import select_file
 from pymodaq.control_modules.move_utility_classes import DAQ_Move_base, comon_parameters_fun, main
 from pymodaq_utils.utils import ThreadCommand, getLineInfo
 from pymodaq_gui.h5modules.browsing import browse_data
-from pymodaqutils.enums import BaseEnum
-from pymodaq.utils.data import DataActuator
+from pymodaq_utils.enums import BaseEnum
+from pymodaq.utils.data import DataActuator, DataWithAxes
 from pymodaq_plugins_holoeye import Config as HoloConfig
 from pymodaq_utils.logger import set_logger, get_module_name
 from pymodaq_plugins_holoeye.resources.daq_move_HoloeyeBase import DAQ_Move_HoloeyeBase
@@ -30,8 +30,6 @@ class DAQ_Move_Holoeye(DAQ_Move_HoloeyeBase):
 
     shaping_type: str = 'Phase Value'
     shaping_settings = []
-    is_multiaxes = False
-    axes_name = []
     data_actuator_type = DataActuatorType['DataActuator']
 
     def __init__(self, *args, **kwargs):
@@ -47,8 +45,9 @@ class DAQ_Move_Holoeye(DAQ_Move_HoloeyeBase):
             self.controller.showBlankscreen(grayValue=int(value))
         elif isinstance(value, np.ndarray):
             self.controller.showData(value.astype(np.uint8))
-        elif isinstance(value, DataActuator):
-            self.controller.showData(value.data[0].astype(np.uint8))
+        elif isinstance(value, DataWithAxes):
+            #self.controller.showData(value.data[0].astype(np.uint8))
+            self.controller.showPhasevalues(value.data[0])
 
     def commit_settings(self, param):
         super().commit_settings(param)
