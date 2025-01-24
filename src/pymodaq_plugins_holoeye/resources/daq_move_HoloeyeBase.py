@@ -28,10 +28,10 @@ class DAQ_Move_HoloeyeBase(DAQ_Move_base):
     shaping_type: str = abstractproperty()
     shaping_settings: List = abstractproperty()
     is_multiaxes = False
-    axes_name = []
+    axes_name = ['']
 
     _epsilon = 1
-    _controller_units = 'greyscale'  # dependent on the shaping_type so to be updated accordingly using self.controller_units = new_unit
+    _controller_units = ''  # dependent on the shaping_type so to be updated accordingly using self.controller_units = new_unit
 
     params = [
         {'title': 'SLM Infos:', 'name': 'info', 'type': 'group', 'visible': True, 'children': [
