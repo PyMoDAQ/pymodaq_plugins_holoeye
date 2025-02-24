@@ -41,21 +41,7 @@ class DAQ_Move_HoloeyeFile(DAQ_Move_HoloeyeBase):
     def move(self, value=0.):
         data = np.loadtxt(self.settings['options', 'file'])
 
-        if data.shape != (self.settings['info', 'height'],
-                          self.settings['info', 'width']):
-            raise ValueError(f"Data with shape {data.shape} cannot be loaded into the SLM of shape"
-                             f" {(self.settings['info', 'height'],  self.settings['info', 'width'])}")
-
-        if self.settings['calibration', 'calib_apply'] and self.calibration is not None:
-            data = np.reshape(np.interp(data.reshape(np.prod(data.shape)),
-                                        self.calibration,
-                                        np.linspace(0, 255, 256)).astype('uint8'),
-                              data.shape)
-
-        if data is None:
-            raise Exception('No data has been selected')
-        else:
-            self.controller.showData(data.astype(np.uint8))
+        self.apply_data(data)
 
     def commit_options(self, param):
         if param.name() == 'apply':

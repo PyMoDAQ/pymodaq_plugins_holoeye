@@ -30,7 +30,7 @@ class DAQ_Move_HoloeyeFullScreen(DAQ_Move_HoloeyeBase):
         self.controller_units = 'greyscale'
 
     def move(self, value):
-        self.controller.showBlankscreen(grayValue=int(value))
+        self.apply_data(value)
 
 
 if __name__ == '__main__':

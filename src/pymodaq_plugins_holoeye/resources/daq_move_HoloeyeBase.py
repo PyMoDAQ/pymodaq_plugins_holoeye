@@ -1,23 +1,22 @@
 from abc import abstractproperty
-from typing import List
-import os
-import sys
-from easydict import EasyDict as edict
-from enum import IntEnum
-import tables
+from typing import List, Union, Tuple
+import numbers
+
 import numpy as np
 from pathlib import Path
 
 import pymodaq_plugins_holoeye  # mandatory if not imported from somewhere else to load holeye module from local install
 from holoeye import slmdisplaysdk
 
-from pymodaq_gui.utils import select_file
 from pymodaq.control_modules.move_utility_classes import DAQ_Move_base, comon_parameters_fun, main
 from pymodaq_utils.utils import ThreadCommand, getLineInfo
 from pymodaq_gui.h5modules.browsing import browse_data
-from pymodaq_utils.enums import BaseEnum
+from pymodaq_gui.parameter.utils import iter_children
+
+from pymodaq.utils.data import DataActuator, DataWithAxes
 from pymodaq_plugins_holoeye import Config as HoloConfig
 from pymodaq_utils.logger import set_logger, get_module_name
+
 
 logger = set_logger(get_module_name(__file__))
 config = HoloConfig()
@@ -25,14 +24,14 @@ config = HoloConfig()
 
 class DAQ_Move_HoloeyeBase(DAQ_Move_base):
 
-    shaping_type: str = abstractproperty()
-    shaping_settings: List = abstractproperty()
+    shaping_type: str = None
+    shaping_settings: List = None
+
     is_multiaxes = False
     axes_name = ['']
 
     _epsilon = 1
-    _controller_units = ''  # dependent on the shaping_type so to be updated accordingly using self.controller_units = new_unit
-
+    _controller_units = ''
     params = [
         {'title': 'SLM Infos:', 'name': 'info', 'type': 'group', 'visible': True, 'children': [
             {'title': 'Width:', 'name': 'width', 'type': 'int', 'value': 0, 'readonly': True},
@@ -47,7 +46,17 @@ class DAQ_Move_HoloeyeBase(DAQ_Move_base):
              'value': config('calibration', 'path'),
              'filetype': True},
             {'title': 'Apply calib?:', 'name': 'calib_apply', 'type': 'bool', 'value': False},
-              ]},
+        ]},
+        {'title': 'Linear phase:', 'name': 'linear_phase', 'type': 'group', 'children': [
+            {'title': 'Linear X:', 'name': 'linear_x', 'type': 'slide',
+             'value': 0, 'min': -2*np.pi, 'max': 2*np.pi},
+            {'title': 'Linear Y:', 'name': 'linear_y', 'type': 'slide',
+             'value': 0, 'min': -2 * np.pi, 'max': 2 * np.pi}]},
+         {'title': 'Quad. phase:', 'name': 'quad_phase', 'type': 'group', 'children': [
+             {'title': 'Quad. X:', 'name': 'quad_x', 'type': 'slide',
+              'value': 0, 'min': -2 * np.pi, 'max': 2 * np.pi},
+             {'title': 'Quad. Y:', 'name': 'quad_y', 'type': 'slide',
+              'value': 0, 'min': -2 * np.pi, 'max': 2 * np.pi}]},
              ] + comon_parameters_fun(is_multiaxes, axes_name, epsilon=_epsilon)
 
     def ini_attributes(self):
@@ -114,6 +123,7 @@ class DAQ_Move_HoloeyeBase(DAQ_Move_base):
             fname = self.settings['calibration', 'calib_file']
             self.load_calibration(fname)
 
+
     def load_calibration(self, fname: str):
 
         path = Path()
@@ -138,19 +148,64 @@ class DAQ_Move_HoloeyeBase(DAQ_Move_base):
                                f" {(self.settings['info', 'height'], self.settings['info', 'width'])}")
                 self.calibration = None
 
-    def apply_data(self, data: np.ndarray = None):
-        if data.shape != (self.settings['info', 'height'],
-                          self.settings['info', 'width']):
-            raise ValueError(f"Data with shape {data.shape} cannot be loaded into the SLM of shape"
-                             f" {(self.settings['info', 'height'],  self.settings['info', 'width'])}")
+    @property
+    def shape(self) -> Tuple[int, int]:
+        return (self.settings['info', 'height'],
+                self.settings['info', 'width'])
+
+    def apply_data(self, value: Union[numbers.Number, np.ndarray, DataActuator]):
+
+        if isinstance(value, numbers.Number):
+            value = np.ones(self.shape) * value
+        elif isinstance(value, DataWithAxes):
+            value = value.data[0]
+        if value.shape != self.shape:
+            raise ValueError(f"Data with shape {value.shape} cannot be loaded into the SLM of shape"
+                             f" {self.shape}")
+
+        value = value + self.compute_linear_phase() + self.compute_quad_phase()
 
         if self.settings['calibration', 'calib_apply'] and self.calibration is not None:
-            data = np.reshape(np.interp(data.reshape(np.prod(data.shape)),
-                                        self.calibration,
-                                        np.linspace(0, 255, 256)).astype('uint8'),
-                              data.shape)
+            value = np.reshape(
+                np.interp(value.reshape(np.prod(value.shape)),
+                          self.calibration,
+                          np.linspace(0, 255, 256)).astype('uint8'),
+                value.shape)
+            self.controller.showData(value)
+        else:
+            self.controller.showPhasevalues(value)
 
-        self.controller.showData(data.astype(np.uint8))
+    def compute_linear_phase(self) -> np.ndarray:
+        xlin = self.settings['linear_phase', 'linear_x']
+        ylin = self.settings['linear_phase', 'linear_y']
+
+        ylin *= np.linspace(-self.shape[0] / 2, self.shape[0] / 2, self.shape[0], endpoint=True) / self.shape[0]
+        xlin *= np.linspace(-self.shape[1] / 2, self.shape[1] / 2, self.shape[1], endpoint=True) / self.shape[1]
+
+        yy, xx = np.meshgrid(ylin, xlin)
+
+        return yy + xx
+
+    def set_linear_phase(self, xlin: float, ylin: float):
+        """ Programmatically set the X and Y linear phase terms"""
+        self.settings.child('linear_phase', 'linear_x').setValue(xlin)
+        self.settings.child('linear_phase', 'linear_y').setValue(ylin)
+
+    def compute_quad_phase(self):
+        xquad = self.settings['quad_phase', 'quad_x']
+        yquad = self.settings['quad_phase', 'quad_y']
+
+        yquad *= (np.linspace(-self.shape[0] / 2, self.shape[0] / 2, self.shape[0], endpoint=True) / self.shape[0]) ** 2
+        xquad *= (np.linspace(-self.shape[1] / 2, self.shape[1] / 2, self.shape[1], endpoint=True) / self.shape[1]) ** 2
+
+        yy, xx = np.meshgrid(yquad, xquad)
+
+        return yy + xx
+
+    def set_quad_phase(self, xquad: float, yquad: float):
+        """ Programmatically set the X and Y quadratic phase terms"""
+        self.settings.child('quad_phase', 'quad_x').setValue(xquad)
+        self.settings.child('quad_phase', 'quad_y').setValue(yquad)
 
     def close(self):
         """

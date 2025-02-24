@@ -36,18 +36,11 @@ class DAQ_Move_Holoeye(DAQ_Move_HoloeyeBase):
         super().__init__(*args, **kwargs)
 
         self.settings.child('bounds', 'is_bounds').setValue(True)
-        self.settings.child('bounds', 'max_bound').setValue(100)
+        self.settings.child('bounds', 'max_bound').setValue(2*np.pi)
         self.controller_units = ''
 
     def move(self, value: Union[numbers.Number, np.ndarray, DataActuator]):
-
-        if isinstance(value, numbers.Number):
-            self.controller.showBlankscreen(grayValue=int(value))
-        elif isinstance(value, np.ndarray):
-            self.controller.showData(value.astype(np.uint8))
-        elif isinstance(value, DataWithAxes):
-            #self.controller.showData(value.data[0].astype(np.uint8))
-            self.controller.showPhasevalues(value.data[0])
+        self.apply_data(value)
 
     def commit_settings(self, param):
         super().commit_settings(param)
