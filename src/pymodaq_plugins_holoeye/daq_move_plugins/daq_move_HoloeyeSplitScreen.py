@@ -1,10 +1,12 @@
+import numpy as np
+from typing import Union, List, Dict
 
 import pymodaq_plugins_holoeye  # mandatory if not imported from somewhere else to load holeye module from local install
 from holoeye import slmdisplaysdk
 
 
 from pymodaq.control_modules.move_utility_classes import DAQ_Move_base, comon_parameters_fun, main
-
+from pymodaq.utils.data import DataActuator
 from pymodaq_plugins_holoeye import Config as HoloConfig
 from pymodaq_utils.logger import set_logger, get_module_name
 from pymodaq_plugins_holoeye.resources.daq_move_HoloeyeBase import DAQ_Move_HoloeyeBase
@@ -26,50 +28,53 @@ class DAQ_Move_HoloeyeSplitScreen(DAQ_Move_HoloeyeBase):
         {'title': 'Flipped?:', 'name': 'split_flip', 'type': 'bool', 'value': False},]
     is_multiaxes = True
     axes_name = ['Screen spliting', 'GreyA', 'GreyB']
+    _controller_units = ['%', '', '']
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def move_abs(self, value: DataActuator):
+        """ Move the actuator to the absolute target defined by value
 
-        self.settings.child('bounds', 'is_bounds').setValue(True)
-        self.settings.child('bounds', 'max_bound').setValue(100)
-        self.controller_units = 'percent'
+        Parameters
+        ----------
+        value: (DataActuator) value of the absolute target positioning
+        """
 
-    def move(self, value):
         if self.settings['multiaxes', 'axis'] == 'Screen spliting':  # ,'GreyA','GreyB']
-            screenDivider = value
-            self.settings.child('options', 'split_value').setValue(value)
+            screen_divider = value
+            self.settings.child('options', 'split_value').setValue(value.value())
         else:
-            screenDivider = self.settings['options', 'split_value']
+            screen_divider = self.settings['options', 'split_value']
 
         if self.settings['multiaxes', 'axis'] == 'GreyA':
-            a_gray_value = int(value)
+            a_gray_value = int(value.value())
             self.settings.child('options', 'greyA_value').setValue(a_gray_value)
         else:
             a_gray_value = self.settings['options', 'greyA_value']
         if self.settings['multiaxes', 'axis'] == 'GreyB':
-            b_gray_value = int(value)
+            b_gray_value = int(value.value())
             self.settings.child('options', 'greyB_value').setValue(b_gray_value)
         else:
             b_gray_value = self.settings['options', 'greyB_value']
 
         flipped = self.settings['options', 'split_flip']
 
+        data_array = np.ones(self.shape) * a_gray_value
         if self.settings['options', 'split_dir'] == 'Vertical':
-            self.controller.showDividedScreenVertical(a_gray_value, b_gray_value, screenDivider / 100, flipped)
+            split_index = int(self.shape[1] * screen_divider / 100)
+            data_array[:, split_index:] = b_gray_value
         else:
-            self.controller.showDividedScreenHorizontal(a_gray_value, b_gray_value, screenDivider / 100, flipped)
+            split_index = int(self.shape[0] * screen_divider / 100)
+            data_array[split_index:, :] = b_gray_value
+
+        super().move_abs(DataActuator(data=data_array))
 
     def commit_settings(self, param):
         super().commit_settings(param)
 
         if self.settings['multiaxes', 'axis'] == 'Screen spliting':
             self.settings.child('bounds', 'max_bound').setValue(100)
-            self.controller_units = 'Percent'
         else:
             self.settings.child('bounds', 'max_bound').setValue(255)
-            self.controller_units = 'Greyscale'
 
 
 if __name__ == '__main__':
-    DAQ_Move_HoloeyeSplitScreen.axes_name
     main(__file__, init=True)

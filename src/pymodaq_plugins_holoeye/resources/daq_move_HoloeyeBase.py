@@ -1,23 +1,23 @@
 from abc import abstractproperty
-from typing import List
-import os
-import sys
-from easydict import EasyDict as edict
-from enum import IntEnum
-import tables
+from typing import List, Union, Tuple
+import numbers
+
 import numpy as np
 from pathlib import Path
 
 import pymodaq_plugins_holoeye  # mandatory if not imported from somewhere else to load holeye module from local install
-from holoeye import slmdisplaysdk
 
-from pymodaq_gui.utils import select_file
-from pymodaq.control_modules.move_utility_classes import DAQ_Move_base, comon_parameters_fun, main
+
+from pymodaq.control_modules.move_utility_classes import DAQ_Move_base, comon_parameters_fun, main, DataActuatorType
 from pymodaq_utils.utils import ThreadCommand, getLineInfo
 from pymodaq_gui.h5modules.browsing import browse_data
-from pymodaq_utils.enums import BaseEnum
+from pymodaq_gui.parameter.utils import iter_children
+
+from pymodaq.utils.data import DataActuator, DataWithAxes
 from pymodaq_plugins_holoeye import Config as HoloConfig
 from pymodaq_utils.logger import set_logger, get_module_name
+
+from holoeye.slmdisplaysdk import SLMInstance, ErrorCode
 
 logger = set_logger(get_module_name(__file__))
 config = HoloConfig()
@@ -25,14 +25,15 @@ config = HoloConfig()
 
 class DAQ_Move_HoloeyeBase(DAQ_Move_base):
 
-    shaping_type: str = abstractproperty()
-    shaping_settings: List = abstractproperty()
+    controller_class = SLMInstance
+    shaping_type: str = None
+    shaping_settings: List = []
+
     is_multiaxes = False
-    axes_name = ['']
-
+    _axis_names = ['']
+    data_actuator_type = DataActuatorType.DataActuator
     _epsilon = 1
-    _controller_units = ''  # dependent on the shaping_type so to be updated accordingly using self.controller_units = new_unit
-
+    _controller_units = ''
     params = [
         {'title': 'SLM Infos:', 'name': 'info', 'type': 'group', 'visible': True, 'children': [
             {'title': 'Width:', 'name': 'width', 'type': 'int', 'value': 0, 'readonly': True},
@@ -47,20 +48,31 @@ class DAQ_Move_HoloeyeBase(DAQ_Move_base):
              'value': config('calibration', 'path'),
              'filetype': True},
             {'title': 'Apply calib?:', 'name': 'calib_apply', 'type': 'bool', 'value': False},
-              ]},
-             ] + comon_parameters_fun(is_multiaxes, axes_name, epsilon=_epsilon)
+        ]},
+        {'title': 'Linear phase:', 'name': 'linear_phase', 'type': 'group', 'children': [
+            {'title': 'Linear X:', 'name': 'linear_x', 'type': 'slide',
+             'value': 0, 'min': -2*np.pi, 'max': 2*np.pi},
+            {'title': 'Linear Y:', 'name': 'linear_y', 'type': 'slide',
+             'value': 0, 'min': -2 * np.pi, 'max': 2 * np.pi}]},
+         {'title': 'Quad. phase:', 'name': 'quad_phase', 'type': 'group', 'children': [
+             {'title': 'Quad. X:', 'name': 'quad_x', 'type': 'slide',
+              'value': 0, 'min': -2 * np.pi, 'max': 2 * np.pi},
+             {'title': 'Quad. Y:', 'name': 'quad_y', 'type': 'float',
+              'value': 0, 'min': -2 * np.pi, 'max': 2 * np.pi},
+             {'title': 'Both:', 'name': 'quad_both', 'type': 'slide',
+              'value': 0, 'min': -2 * np.pi, 'max': 2 * np.pi},
+         ]},
+             ] + comon_parameters_fun(is_multiaxes, _axis_names, epsilon=_epsilon)
 
     def ini_attributes(self):
         self.settings.child('scaling').hide()
+
         self.calibration = None
-        self.controller: slmdisplaysdk.SLMInstance = None
+        self._applied_value: np.ndarray = None
+
+        self.controller = None
         self.settings.child('shaping_type').setValue(self.shaping_type)
         self.settings.child('options').addChildren(self.shaping_settings)
-
-        self.settings.child('multiaxes', 'ismultiaxes').setValue(self.is_multiaxes)
-        self.settings.child('multiaxes').show(self.is_multiaxes)
-
-        self.settings.child('multiaxes', 'axis').setOpts(limits=self.axes_name)
 
     def ini_stage(self, controller=None):
         """
@@ -87,17 +99,20 @@ class DAQ_Move_HoloeyeBase(DAQ_Move_base):
         """
 
         self.controller = self.ini_stage_init(old_controller=controller,
-                                              new_controller=slmdisplaysdk.SLMInstance())
+                                              new_controller=self.controller_class())
 
         if self.settings['multiaxes', 'multi_status'] == "Master":
             error = self.controller.open()
-            assert error == slmdisplaysdk.ErrorCode.NoError, self.controller.errorString(error)
+            if error != ErrorCode.NoError:
+                raise IOError(f'SLM Error: {self.controller.errorString(error)}')
 
         data_width = self.controller.width_px
         data_height = self.controller.height_px
 
         self.settings.child('info', 'width').setValue(data_width)
         self.settings.child('info', 'height').setValue(data_height)
+
+        self.current_position = DataActuator(data=[np.zeros(self.shape)])
 
         info = "Holoeye"
         initialized = True
@@ -113,6 +128,13 @@ class DAQ_Move_HoloeyeBase(DAQ_Move_base):
         elif param.name() == 'calib_file' or param.name() == 'calib_apply':
             fname = self.settings['calibration', 'calib_file']
             self.load_calibration(fname)
+        elif param.name() in iter_children(self.settings.child('linear_phase'), []) or \
+                param.name() in iter_children(self.settings.child('quad_phase'), []):
+            if param.name() == 'quad_both':
+                self.settings.child('quad_phase', 'quad_x').setValue(param.value())
+                self.settings.child('quad_phase', 'quad_y').setValue(param.value())
+            self.move_abs(self._applied_value)
+            self.emit_value(self.target_value)
 
     def load_calibration(self, fname: str):
 
@@ -138,19 +160,63 @@ class DAQ_Move_HoloeyeBase(DAQ_Move_base):
                                f" {(self.settings['info', 'height'], self.settings['info', 'width'])}")
                 self.calibration = None
 
-    def apply_data(self, data: np.ndarray = None):
-        if data.shape != (self.settings['info', 'height'],
-                          self.settings['info', 'width']):
-            raise ValueError(f"Data with shape {data.shape} cannot be loaded into the SLM of shape"
-                             f" {(self.settings['info', 'height'],  self.settings['info', 'width'])}")
+    @property
+    def shape(self) -> Tuple[int, int]:
+        return (self.settings['info', 'height'],
+                self.settings['info', 'width'])
+
+    def apply_data(self, value: Union[numbers.Number, np.ndarray, DataActuator]):
 
         if self.settings['calibration', 'calib_apply'] and self.calibration is not None:
-            data = np.reshape(np.interp(data.reshape(np.prod(data.shape)),
-                                        self.calibration,
-                                        np.linspace(0, 255, 256)).astype('uint8'),
-                              data.shape)
+            value = np.reshape(
+                np.interp(value.reshape(np.prod(value.shape)),
+                          self.calibration,
+                          np.linspace(0, 255, 256)).astype('uint8'),
+                value.shape)
+            self.controller.showData(value)
+        else:
+            self.controller.showPhasevalues(value)
 
-        self.controller.showData(data.astype(np.uint8))
+    def compute_linear_phase(self) -> np.ndarray:
+        xlin = self.settings['linear_phase', 'linear_x']
+        ylin = self.settings['linear_phase', 'linear_y']
+
+        ylin *= np.linspace(-self.shape[0] / 2, self.shape[0] / 2, self.shape[0], endpoint=True) / self.shape[0]
+        xlin *= np.linspace(-self.shape[1] / 2, self.shape[1] / 2, self.shape[1], endpoint=True) / self.shape[1]
+
+        yy, xx = np.meshgrid(ylin, xlin, indexing='ij')
+
+        return yy + xx
+
+    def set_linear_phase(self, xlin: float, ylin: float):
+        """ Programmatically set the X and Y linear phase terms"""
+        self.settings.child('linear_phase', 'linear_x').setValue(xlin)
+        self.settings.child('linear_phase', 'linear_y').setValue(ylin)
+        self.move_abs(self._applied_value)
+        self.emit_value(self.target_value)
+
+    def compute_quad_phase(self):
+        xquad = self.settings['quad_phase', 'quad_x']
+        yquad = self.settings['quad_phase', 'quad_y']
+
+        yquad *= (np.linspace(-self.shape[0] / 2, self.shape[0] / 2, self.shape[0], endpoint=True) / self.shape[0]) ** 2
+        xquad *= (np.linspace(-self.shape[1] / 2, self.shape[1] / 2, self.shape[1], endpoint=True) / self.shape[1]) ** 2
+
+        yy, xx = np.meshgrid(yquad, xquad, indexing='ij')
+
+        return yy + xx
+
+    def set_quad_phase(self, xquad: float = None, yquad: float = None, both=None):
+        """ Programmatically set the X and Y quadratic phase terms"""
+        if both is None:
+            if xquad is not None:
+                self.settings.child('quad_phase', 'quad_x').setValue(xquad)
+            if yquad is not None:
+                self.settings.child('quad_phase', 'quad_y').setValue(yquad)
+        else:
+            self.settings.child('quad_phase', 'quad_both').setValue(both)
+        self.move_abs(self._applied_value)
+        self.emit_value(self.target_value)
 
     def close(self):
         """
@@ -169,26 +235,31 @@ class DAQ_Move_HoloeyeBase(DAQ_Move_base):
         float: The position obtained after scaling conversion.
         """
 
-        pos = self.current_position
+        pos = self.target_value
         return pos
 
     def move(self, value):
         raise NotImplementedError
 
-    def move_abs(self, value):
+    def move_abs(self, value: DataActuator):
         """ Move the actuator to the absolute target defined by value
 
         Parameters
         ----------
-        value: (float) value of the absolute target positioning
+        value: (DataActuator) value of the absolute target positioning
         """
+        if value.shape == (1,):
+            value.data = [np.ones(self.shape) * value.data[0]]
+
+        self._applied_value = value.deepcopy()
+
+        value = value + self.compute_linear_phase() + self.compute_quad_phase()
 
         value = self.check_bound(value)  # if user checked bounds, the defined bounds are applied here
         self.target_value = value
         value = self.set_position_with_scaling(value)  # apply scaling if the user specified one
-        self.move(value)
 
-        self.current_position = value
+        self.apply_data(value)
 
     def move_rel(self, value):
         """
@@ -205,6 +276,8 @@ class DAQ_Move_HoloeyeBase(DAQ_Move_base):
             hardware.set_position_with_scaling, DAQ_Move_base.poll_moving
 
         """
+        if value.shape == (1,):
+            value.data = [np.ones(self.shape) * value.data[0]]
         value = self.check_bound(self.current_position + value) - self.current_position
         self.target_value = value + self.current_position
 

@@ -1,14 +1,7 @@
-from typing import List
-import os
-import sys
-from easydict import EasyDict as edict
-from enum import IntEnum
-import tables
-import numpy as np
-from pathlib import Path
 
-import pymodaq_plugins_holoeye  # mandatory if not imported from somewhere else to load holeye module from local install
-from holoeye import slmdisplaysdk
+import numpy as np
+
+from pymodaq.utils.data import DataActuator
 
 
 from pymodaq.control_modules.move_utility_classes import DAQ_Move_base, comon_parameters_fun, main
@@ -38,24 +31,9 @@ class DAQ_Move_HoloeyeFile(DAQ_Move_HoloeyeBase):
         self.settings.child('bounds', 'is_bounds').setValue(False)
         self.controller_units = 'file'
 
-    def move(self, value=0.):
+    def move_abs(self, value=0.):
         data = np.loadtxt(self.settings['options', 'file'])
-
-        if data.shape != (self.settings['info', 'height'],
-                          self.settings['info', 'width']):
-            raise ValueError(f"Data with shape {data.shape} cannot be loaded into the SLM of shape"
-                             f" {(self.settings['info', 'height'],  self.settings['info', 'width'])}")
-
-        if self.settings['calibration', 'calib_apply'] and self.calibration is not None:
-            data = np.reshape(np.interp(data.reshape(np.prod(data.shape)),
-                                        self.calibration,
-                                        np.linspace(0, 255, 256)).astype('uint8'),
-                              data.shape)
-
-        if data is None:
-            raise Exception('No data has been selected')
-        else:
-            self.controller.showData(data.astype(np.uint8))
+        super().move_abs(DataActuator(data=data))
 
     def commit_options(self, param):
         if param.name() == 'apply':
