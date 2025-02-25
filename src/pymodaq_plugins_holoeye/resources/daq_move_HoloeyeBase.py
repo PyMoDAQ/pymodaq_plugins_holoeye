@@ -8,7 +8,7 @@ from pathlib import Path
 import pymodaq_plugins_holoeye  # mandatory if not imported from somewhere else to load holeye module from local install
 
 
-from pymodaq.control_modules.move_utility_classes import DAQ_Move_base, comon_parameters_fun, main
+from pymodaq.control_modules.move_utility_classes import DAQ_Move_base, comon_parameters_fun, main, DataActuatorType
 from pymodaq_utils.utils import ThreadCommand, getLineInfo
 from pymodaq_gui.h5modules.browsing import browse_data
 from pymodaq_gui.parameter.utils import iter_children
@@ -27,11 +27,11 @@ class DAQ_Move_HoloeyeBase(DAQ_Move_base):
 
     controller_class = SLMInstance
     shaping_type: str = None
-    shaping_settings: List = None
+    shaping_settings: List = []
 
     is_multiaxes = False
     _axis_names = ['']
-
+    data_actuator_type = DataActuatorType.DataActuator
     _epsilon = 1
     _controller_units = ''
     params = [
@@ -192,6 +192,8 @@ class DAQ_Move_HoloeyeBase(DAQ_Move_base):
         """ Programmatically set the X and Y linear phase terms"""
         self.settings.child('linear_phase', 'linear_x').setValue(xlin)
         self.settings.child('linear_phase', 'linear_y').setValue(ylin)
+        self.move_abs(self._applied_value)
+        self.emit_value(self.target_value)
 
     def compute_quad_phase(self):
         xquad = self.settings['quad_phase', 'quad_x']
@@ -204,10 +206,17 @@ class DAQ_Move_HoloeyeBase(DAQ_Move_base):
 
         return yy + xx
 
-    def set_quad_phase(self, xquad: float, yquad: float):
+    def set_quad_phase(self, xquad: float = None, yquad: float = None, both=None):
         """ Programmatically set the X and Y quadratic phase terms"""
-        self.settings.child('quad_phase', 'quad_x').setValue(xquad)
-        self.settings.child('quad_phase', 'quad_y').setValue(yquad)
+        if both is None:
+            if xquad is not None:
+                self.settings.child('quad_phase', 'quad_x').setValue(xquad)
+            if yquad is not None:
+                self.settings.child('quad_phase', 'quad_y').setValue(yquad)
+        else:
+            self.settings.child('quad_phase', 'quad_both').setValue(both)
+        self.move_abs(self._applied_value)
+        self.emit_value(self.target_value)
 
     def close(self):
         """

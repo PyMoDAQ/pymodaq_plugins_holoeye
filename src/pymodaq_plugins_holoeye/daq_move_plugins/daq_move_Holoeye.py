@@ -28,19 +28,7 @@ config = HoloConfig()
 
 class DAQ_Move_Holoeye(DAQ_Move_HoloeyeBase):
 
-    shaping_type: str = 'Phase Value'
-    shaping_settings = []
-    data_actuator_type = DataActuatorType['DataActuator']
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        self.settings.child('bounds', 'is_bounds').setValue(True)
-        self.settings.child('bounds', 'max_bound').setValue(2*np.pi)
-        self.controller_units = ''
-
-    def commit_settings(self, param):
-        super().commit_settings(param)
+    pass
 
 
 if __name__ == '__main__':

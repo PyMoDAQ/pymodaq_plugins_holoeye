@@ -21,23 +21,6 @@ class DAQ_Move_HoloeyeMock(DAQ_Move_HoloeyeBase):
 
     controller_class = SLMInstance
 
-    shaping_type: str = 'Phase Value'
-    shaping_settings = []
-    data_actuator_type = DataActuatorType['DataActuator']
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        self.settings.child('bounds', 'is_bounds').setValue(True)
-        self.settings.child('bounds', 'max_bound').setValue(2*np.pi)
-
-
-    def move_abs(self, value: DataActuator):
-        super().move_abs(value)
-
-
-    def commit_settings(self, param):
-        super().commit_settings(param)
 
 
 if __name__ == '__main__':
