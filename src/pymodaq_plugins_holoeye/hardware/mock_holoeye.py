@@ -17,11 +17,11 @@ class SLMInstance:
 
     @property
     def width_px(self) -> int:
-        return 1024
+        return 1920
 
     @property
     def height_px(self) -> int:
-        return 768
+        return 1080
 
     def utilsSLMPreviewShow(self, *args, **kwargs):
         pass
