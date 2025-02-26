@@ -32,7 +32,7 @@ class DAQ_Move_HoloeyeBase(DAQ_Move_base):
     is_multiaxes = False
     _axis_names = ['']
     data_actuator_type = DataActuatorType.DataActuator
-    _epsilon = 1
+    _epsilon = 0.00001
     _controller_units = ''
     params = [
         {'title': 'SLM Infos:', 'name': 'info', 'type': 'group', 'visible': True, 'children': [
@@ -181,8 +181,8 @@ class DAQ_Move_HoloeyeBase(DAQ_Move_base):
         xlin = self.settings['linear_phase', 'linear_x']
         ylin = self.settings['linear_phase', 'linear_y']
 
-        ylin *= np.linspace(-self.shape[0] / 2, self.shape[0] / 2, self.shape[0], endpoint=True) / self.shape[0]
-        xlin *= np.linspace(-self.shape[1] / 2, self.shape[1] / 2, self.shape[1], endpoint=True) / self.shape[1]
+        ylin *= np.linspace(-self.shape[0] / 2, self.shape[0] / 2, self.shape[0], endpoint=True)
+        xlin *= np.linspace(-self.shape[1] / 2, self.shape[1] / 2, self.shape[1], endpoint=True)
 
         yy, xx = np.meshgrid(ylin, xlin, indexing='ij')
 
@@ -199,8 +199,8 @@ class DAQ_Move_HoloeyeBase(DAQ_Move_base):
         xquad = self.settings['quad_phase', 'quad_x']
         yquad = self.settings['quad_phase', 'quad_y']
 
-        yquad *= (np.linspace(-self.shape[0] / 2, self.shape[0] / 2, self.shape[0], endpoint=True) / self.shape[0]) ** 2
-        xquad *= (np.linspace(-self.shape[1] / 2, self.shape[1] / 2, self.shape[1], endpoint=True) / self.shape[1]) ** 2
+        yquad *= (np.linspace(-self.shape[0] / 2, self.shape[0] / 2, self.shape[0], endpoint=True)) ** 2
+        xquad *= (np.linspace(-self.shape[1] / 2, self.shape[1] / 2, self.shape[1], endpoint=True)) ** 2
 
         yy, xx = np.meshgrid(yquad, xquad, indexing='ij')
 
@@ -215,6 +215,8 @@ class DAQ_Move_HoloeyeBase(DAQ_Move_base):
                 self.settings.child('quad_phase', 'quad_y').setValue(yquad)
         else:
             self.settings.child('quad_phase', 'quad_both').setValue(both)
+            self.settings.child('quad_phase', 'quad_x').setValue(both)
+            self.settings.child('quad_phase', 'quad_y').setValue(both)
         self.move_abs(self._applied_value)
         self.emit_value(self.target_value)
 
