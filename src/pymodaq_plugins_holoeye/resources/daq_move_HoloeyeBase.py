@@ -16,6 +16,7 @@ from pymodaq_gui.parameter.utils import iter_children
 from pymodaq.utils.data import DataActuator, DataWithAxes
 from pymodaq_plugins_holoeye import Config as HoloConfig
 from pymodaq_utils.logger import set_logger, get_module_name
+from pymodaq_utils.math_utils import wrap
 
 from holoeye.slmdisplaysdk import SLMInstance, ErrorCode
 
@@ -257,11 +258,14 @@ class DAQ_Move_HoloeyeBase(DAQ_Move_base):
 
         value = value + self.compute_linear_phase() + self.compute_quad_phase()
 
+        value = wrap(value)
+
         value = self.check_bound(value)  # if user checked bounds, the defined bounds are applied here
         self.target_value = value
         value = self.set_position_with_scaling(value)  # apply scaling if the user specified one
 
         self.apply_data(value)
+
 
     def move_rel(self, value):
         """
