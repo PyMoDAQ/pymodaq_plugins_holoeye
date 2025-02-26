@@ -55,15 +55,19 @@ class DAQ_Move_HoloeyeBase(DAQ_Move_base):
              'value': 0},
             {'title': 'Linear Y:', 'name': 'linear_y', 'type': 'float',
              'value': 0}]},
-         {'title': 'Quad. phase:', 'name': 'quad_phase', 'type': 'group', 'children': [
-             {'title': 'Quad. X:', 'name': 'quad_x', 'type': 'float',
-              'value': 0, },
-             {'title': 'Quad. Y:', 'name': 'quad_y', 'type': 'float',
-              'value': 0},
-             {'title': 'Both:', 'name': 'quad_both', 'type': 'float',
-              'value': 0},
-         ]},
-
+        {'title': 'Quad. phase:', 'name': 'quad_phase', 'type': 'group', 'children': [
+            {'title': 'Quad. X:', 'name': 'quad_x', 'type': 'float',
+             'value': 0, },
+            {'title': 'Quad. Y:', 'name': 'quad_y', 'type': 'float',
+             'value': 0},
+            {'title': 'Both:', 'name': 'quad_both', 'type': 'float',
+             'value': 0},
+        ]},
+        {'title': 'Mask shift:', 'name': 'mask_shift', 'type': 'group', 'children': [
+            {'title': 'Shift X (px):', 'name': 'shift_x', 'type': 'int',
+             'value': 0},
+            {'title': 'Shit Y (px):', 'name': 'shift_y', 'type': 'int',
+             'value': 0}]},
              ] + comon_parameters_fun(is_multiaxes, _axis_names, epsilon=_epsilon)
 
     def ini_attributes(self):
@@ -131,10 +135,13 @@ class DAQ_Move_HoloeyeBase(DAQ_Move_base):
             fname = self.settings['calibration', 'calib_file']
             self.load_calibration(fname)
         elif param.name() in iter_children(self.settings.child('linear_phase'), []) or \
-                param.name() in iter_children(self.settings.child('quad_phase'), []):
+                param.name() in iter_children(self.settings.child('quad_phase'), []) or \
+                param.name() in iter_children(self.settings.child('mask_shift'), []):
+
             if param.name() == 'quad_both':
                 self.settings.child('quad_phase', 'quad_x').setValue(param.value())
                 self.settings.child('quad_phase', 'quad_y').setValue(param.value())
+
             self.move_abs(self._applied_value)
             self.emit_value(self.target_value)
 
@@ -167,17 +174,18 @@ class DAQ_Move_HoloeyeBase(DAQ_Move_base):
         return (self.settings['info', 'height'],
                 self.settings['info', 'width'])
 
-    def apply_data(self, value: Union[numbers.Number, np.ndarray, DataActuator]):
+    def apply_data(self, value: DataActuator):
+        value_array = value[0]
 
         if self.settings['calibration', 'calib_apply'] and self.calibration is not None:
-            value = np.reshape(
-                np.interp(value.reshape(np.prod(value.shape)),
+            value_array = np.reshape(
+                np.interp(value_array.reshape(np.prod(value_array.shape)),
                           self.calibration,
                           np.linspace(0, 255, 256)).astype('uint8'),
-                value.shape)
-            self.controller.showData(value)
+                value_array.shape)
+            self.controller.showData(value_array)
         else:
-            self.controller.showPhasevalues(value)
+            self.controller.showPhasevalues(value_array)
 
     def compute_linear_phase(self) -> np.ndarray:
         xlin = self.settings['linear_phase', 'linear_x']
@@ -260,6 +268,10 @@ class DAQ_Move_HoloeyeBase(DAQ_Move_base):
         value = value + self.compute_linear_phase() + self.compute_quad_phase()
 
         value = wrap(value)
+
+        value = np.roll(value, shift=(self.settings['mask_shift', 'shift_y'],
+                                      self.settings['mask_shift', 'shift_x']),
+                        axis=(0,1))
 
         value = self.check_bound(value)  # if user checked bounds, the defined bounds are applied here
         self.target_value = value
