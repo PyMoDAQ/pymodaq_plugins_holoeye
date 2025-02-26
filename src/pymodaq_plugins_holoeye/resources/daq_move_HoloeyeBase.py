@@ -51,18 +51,19 @@ class DAQ_Move_HoloeyeBase(DAQ_Move_base):
             {'title': 'Apply calib?:', 'name': 'calib_apply', 'type': 'bool', 'value': False},
         ]},
         {'title': 'Linear phase:', 'name': 'linear_phase', 'type': 'group', 'children': [
-            {'title': 'Linear X:', 'name': 'linear_x', 'type': 'slide',
-             'value': 0, 'min': -2*np.pi, 'max': 2*np.pi},
-            {'title': 'Linear Y:', 'name': 'linear_y', 'type': 'slide',
-             'value': 0, 'min': -2 * np.pi, 'max': 2 * np.pi}]},
+            {'title': 'Linear X:', 'name': 'linear_x', 'type': 'float',
+             'value': 0},
+            {'title': 'Linear Y:', 'name': 'linear_y', 'type': 'float',
+             'value': 0}]},
          {'title': 'Quad. phase:', 'name': 'quad_phase', 'type': 'group', 'children': [
-             {'title': 'Quad. X:', 'name': 'quad_x', 'type': 'slide',
-              'value': 0, 'min': -2 * np.pi, 'max': 2 * np.pi},
+             {'title': 'Quad. X:', 'name': 'quad_x', 'type': 'float',
+              'value': 0, },
              {'title': 'Quad. Y:', 'name': 'quad_y', 'type': 'float',
-              'value': 0, 'min': -2 * np.pi, 'max': 2 * np.pi},
-             {'title': 'Both:', 'name': 'quad_both', 'type': 'slide',
-              'value': 0, 'min': -2 * np.pi, 'max': 2 * np.pi},
+              'value': 0},
+             {'title': 'Both:', 'name': 'quad_both', 'type': 'float',
+              'value': 0},
          ]},
+
              ] + comon_parameters_fun(is_multiaxes, _axis_names, epsilon=_epsilon)
 
     def ini_attributes(self):
