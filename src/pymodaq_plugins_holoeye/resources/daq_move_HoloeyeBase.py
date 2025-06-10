@@ -250,6 +250,9 @@ class DAQ_Move_HoloeyeBase(DAQ_Move_base):
         pos = self.target_value
         return pos
 
+    def user_condition_to_reach_target(self) -> bool:
+        return True
+
     def move(self, value):
         raise NotImplementedError
 
