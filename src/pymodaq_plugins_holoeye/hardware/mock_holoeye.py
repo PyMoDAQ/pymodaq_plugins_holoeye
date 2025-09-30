@@ -1,5 +1,6 @@
 from pymodaq_utils.enums import BaseEnum
 
+
 class ErrorCode(BaseEnum):
     NoError = 0
 
@@ -17,11 +18,11 @@ class SLMInstance:
 
     @property
     def width_px(self) -> int:
-        return 1920
+        return 1024
 
     @property
     def height_px(self) -> int:
-        return 1080
+        return 768
 
     def utilsSLMPreviewShow(self, *args, **kwargs):
         pass

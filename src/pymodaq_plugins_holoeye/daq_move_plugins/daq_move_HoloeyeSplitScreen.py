@@ -28,7 +28,7 @@ class DAQ_Move_HoloeyeSplitScreen(DAQ_Move_HoloeyeBase):
         {'title': 'Flipped?:', 'name': 'split_flip', 'type': 'bool', 'value': False},]
     is_multiaxes = True
     axes_name = ['Screen spliting', 'GreyA', 'GreyB']
-    _controller_units = ['%', '', '']
+    _controller_units = ['', '', '']
 
     def move_abs(self, value: DataActuator):
         """ Move the actuator to the absolute target defined by value
