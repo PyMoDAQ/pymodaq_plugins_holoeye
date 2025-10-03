@@ -12,11 +12,14 @@ config = Config()
 
 environs = []
 for env in os.environ.keys():
-    if 'HEDS' in env and 'MODULES' in env:
-        environs.append(env)
+	if 'HEDS' in env and 'MODULES' in env:
+		environs.append(env)
 
 environs = sorted(environs)
+
+
 if 'HEDS_PYTHON_MODULES' in environs:  #old stuff without the sdk version
-    environs.remove('HEDS_PYTHON_MODULES', )
+	environs.remove('HEDS_PYTHON_MODULES', )
+
 sys.path.append(os.getenv(environs[-1], ''))
 
