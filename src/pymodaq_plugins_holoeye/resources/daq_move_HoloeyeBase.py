@@ -35,7 +35,7 @@ class DAQ_Move_HoloeyeBase(DAQ_Move_base):
     data_actuator_type = DataActuatorType.DataActuator
     _epsilon = 0.00001
     _controller_units = ''
-    params = [
+    comon_shaping_params = [
         {'title': 'SLM Infos:', 'name': 'info', 'type': 'group', 'visible': True, 'children': [
             {'title': 'Width:', 'name': 'width', 'type': 'int', 'value': 0, 'readonly': True},
             {'title': 'Height:', 'name': 'height', 'type': 'int', 'value': 0, 'readonly': True},
@@ -68,7 +68,8 @@ class DAQ_Move_HoloeyeBase(DAQ_Move_base):
              'value': 0},
             {'title': 'Shit Y (px):', 'name': 'shift_y', 'type': 'int',
              'value': 0}]},
-             ] + comon_parameters_fun(is_multiaxes, _axis_names, epsilon=_epsilon)
+             ]
+    params = comon_shaping_params + comon_parameters_fun(is_multiaxes, _axis_names, epsilon=_epsilon)
 
     def ini_attributes(self):
         self.settings.child('scaling').hide()
