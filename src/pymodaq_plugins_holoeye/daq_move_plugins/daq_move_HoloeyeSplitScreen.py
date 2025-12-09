@@ -27,8 +27,11 @@ class DAQ_Move_HoloeyeSplitScreen(DAQ_Move_HoloeyeBase):
          'limits': ['Horizontal', 'Vertical']},
         {'title': 'Flipped?:', 'name': 'split_flip', 'type': 'bool', 'value': False},]
     is_multiaxes = True
-    axes_name = ['Screen spliting', 'GreyA', 'GreyB']
+    _axis_names = ['Screen spliting', 'GreyA', 'GreyB']
     _controller_units = ['', '', '']
+    _epsilon = 1
+    params = DAQ_Move_HoloeyeBase.comon_shaping_params + comon_parameters_fun(is_multiaxes, _axis_names, epsilon=_epsilon)
+
 
     def move_abs(self, value: DataActuator):
         """ Move the actuator to the absolute target defined by value
@@ -39,25 +42,28 @@ class DAQ_Move_HoloeyeSplitScreen(DAQ_Move_HoloeyeBase):
         """
 
         if self.settings['multiaxes', 'axis'] == 'Screen spliting':  # ,'GreyA','GreyB']
-            screen_divider = value
+            screen_divider = int(value.value())
+            self.target_value = screen_divider
             self.settings.child('options', 'split_value').setValue(value.value())
         else:
             screen_divider = self.settings['options', 'split_value']
 
         if self.settings['multiaxes', 'axis'] == 'GreyA':
             a_gray_value = int(value.value())
+            self.target_value = a_gray_value
             self.settings.child('options', 'greyA_value').setValue(a_gray_value)
         else:
             a_gray_value = self.settings['options', 'greyA_value']
         if self.settings['multiaxes', 'axis'] == 'GreyB':
             b_gray_value = int(value.value())
+            self.target_value = b_gray_value
             self.settings.child('options', 'greyB_value').setValue(b_gray_value)
         else:
             b_gray_value = self.settings['options', 'greyB_value']
 
         flipped = self.settings['options', 'split_flip']
 
-        data_array = np.ones(self.shape) * a_gray_value
+        data_array = np.ones(self.shape, dtype=np.uint8) * a_gray_value
         if self.settings['options', 'split_dir'] == 'Vertical':
             split_index = int(self.shape[1] * screen_divider / 100)
             data_array[:, split_index:] = b_gray_value
@@ -65,7 +71,7 @@ class DAQ_Move_HoloeyeSplitScreen(DAQ_Move_HoloeyeBase):
             split_index = int(self.shape[0] * screen_divider / 100)
             data_array[split_index:, :] = b_gray_value
 
-        super().move_abs(DataActuator(data=data_array))
+        self.controller.showData(data_array)  #directly call the method to apply the grey levels to the holoeye
 
     def commit_settings(self, param):
         super().commit_settings(param)
