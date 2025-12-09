@@ -23,7 +23,12 @@ class DAQ_Move_HoloeyeFile(DAQ_Move_HoloeyeBase):
         {'title': 'Apply:', 'name': 'apply', 'type': 'bool_push', 'value': False},
     ]
     is_multiaxes = False
-    axes_name = []
+    _axis_names = ['']
+    _controller_units = ['']
+    _epsilon = 1
+
+    params = (DAQ_Move_HoloeyeBase.comon_shaping_params +
+              comon_parameters_fun(is_multiaxes, _axis_names, epsilon=_epsilon))
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -37,7 +42,7 @@ class DAQ_Move_HoloeyeFile(DAQ_Move_HoloeyeBase):
 
     def commit_options(self, param):
         if param.name() == 'apply':
-            self.move()
+            self.move_abs()
 
 
 if __name__ == '__main__':
