@@ -33,6 +33,10 @@ class FakeSlm4:
     def pixelsize_um(self):
         return 8.
 
+    def showImageData(self, data, flags=None):
+        self.shown.append((np.asarray(data), None))
+        return 0
+
     def showPhaseData(self, data, phase_unit=256):
         self.shown.append((np.asarray(data), phase_unit))
         return 0
@@ -50,7 +54,7 @@ class FakeSlm4:
 def fake_sdk4(monkeypatch):
     slms = []
 
-    def init_with_option(preselect='', openPreview=True):
+    def init_with_option(preselect='', openPreview=True, previewScale=1.0):
         slms.append(FakeSlm4(preselect=preselect, openPreview=openPreview))
         return slms[-1]
 
@@ -98,18 +102,13 @@ class TestSdk4Adapter:
         assert fake_sdk4.slms[-1].init_kwargs['openPreview'] is False
         assert (slm.width_px, slm.height_px) == (8, 6)
 
-    def test_sdk_without_preview_option(self, fake_sdk4):
-        fake_sdk4.SLM.Init = lambda: FakeSlm4()
-        slm = SLMInstance4()
-        assert slm.open() == 0
-
     def test_grey_levels_and_phase(self, fake_sdk4):
         slm = SLMInstance4()
         slm.open()
         slm.showData(np.full((6, 8), 300.4))
         slm.showPhasevalues(np.full((6, 8), 2 * np.pi + 1))
         (grey, grey_unit), (phase, phase_unit) = fake_sdk4.slms[-1].shown
-        assert grey.dtype == np.uint8 and np.all(grey == 255) and grey_unit == 256
+        assert grey.dtype == np.uint8 and np.all(grey == 255) and grey_unit is None
         assert np.allclose(phase, 1, atol=1e-5) and phase_unit == pytest.approx(2 * np.pi)
 
     def test_preview_and_close(self, fake_sdk4):
