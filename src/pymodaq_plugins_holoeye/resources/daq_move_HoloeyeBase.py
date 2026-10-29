@@ -40,7 +40,7 @@ class DAQ_Move_HoloeyeBase(DAQ_Move_base):
             {'title': 'Height:', 'name': 'height', 'type': 'int', 'value': 0, 'readonly': True},
         ]},
         {'title': 'SDK version:', 'name': 'sdk', 'type': 'list', 'limits': SDK_CHOICES, 'value': 'auto',
-         'tip': 'Holoeye SLM Display SDK to use, auto: the SDK 3 if installed, else the SDK 4'},
+         'tip': 'Holoeye SLM Display SDK to use, auto: the SDK 4 if installed, else the SDK 3'},
         {'title': 'Show Preview?:', 'name': 'show_preview', 'type': 'bool', 'value': False},
         {'title': 'Shaping type:', 'name': 'shaping_type', 'type': 'str', 'value': ''},
         {'title': 'shaping options:', 'name': 'options', 'type': 'group', 'visible': True,

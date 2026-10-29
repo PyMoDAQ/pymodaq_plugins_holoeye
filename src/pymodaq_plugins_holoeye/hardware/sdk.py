@@ -25,17 +25,17 @@ def _is_available(module_name: str) -> bool:
 
 
 def installed_sdks() -> List[str]:
-    """The versions of the SDK that can be imported, the oldest first"""
+    """The versions of the SDK that can be imported, the most recent first"""
     sdks = []
-    if _is_available('holoeye.slmdisplaysdk'):
-        sdks.append('3')
     if _is_available('HEDS') and _is_available('hedslib'):
         sdks.append('4')
+    if _is_available('holoeye.slmdisplaysdk'):
+        sdks.append('3')
     return sdks
 
 
 def select_sdk(version: str = 'auto') -> str:
-    """Return '3' or '4'. With 'auto' the SDK 3 is used when installed (as it always was), else the SDK 4"""
+    """Return '3' or '4'. With 'auto' the SDK 4 is used when installed (more recent), else the SDK 3"""
     version = str(version)
     if version not in SDK_CHOICES:
         raise ValueError(f'Unknown SDK version {version}, should be one of {SDK_CHOICES}')

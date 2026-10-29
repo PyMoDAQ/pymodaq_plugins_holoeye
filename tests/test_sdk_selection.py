@@ -74,7 +74,7 @@ class TestSelection:
             sdk.select_sdk('5')
 
     @pytest.mark.parametrize('installed, requested, expected', [
-        (['3', '4'], 'auto', '3'), (['4'], 'auto', '4'), (['3'], 'auto', '3'),
+        (['4', '3'], 'auto', '4'), (['4'], 'auto', '4'), (['3'], 'auto', '3'),
         (['3', '4'], '4', '4'), (['3', '4'], '3', '3')])
     def test_choice(self, monkeypatch, installed, requested, expected):
         monkeypatch.setattr(sdk, 'installed_sdks', lambda: installed)

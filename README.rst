@@ -49,6 +49,6 @@ find them through environment variables:
 * SDK 3: ``HEDS_<version>_PYTHON_MODULES`` (the last one, sorted by name, is used)
 * SDK 4: ``HEDS_4_0_PYTHON`` (the folders ``api/python`` and ``examples`` of the SDK are added to the python path)
 
-The ``SDK version`` setting of the plugins selects the one to use: ``auto`` (default) uses the SDK 3 if it is
-installed (as before), else the SDK 4. With the SDK 4, the Holoeye preview window is not opened at initialization
+The ``SDK version`` setting of the plugins selects the one to use: ``auto`` (default) uses the SDK 4 if it is
+installed (more recent), else the SDK 3. With the SDK 4, the Holoeye preview window is not opened at initialization
 (it can fail when authorizations are required), use the ``Show Preview?`` setting to open it.
