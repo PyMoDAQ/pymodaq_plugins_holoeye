@@ -43,7 +43,7 @@ def select_sdk(version: str = 'auto') -> str:
     if version == 'auto':
         if not sdks:
             raise ImportError('No Holoeye SLM Display SDK found: install the SDK 3 or 4 and set its environment '
-                              'variable (HEDS_*_PYTHON_MODULES for the SDK 3, HEDS_4_0_PYTHON for the SDK 4)')
+                              'variable (HEDS_*_PYTHON_MODULES for the SDK 3, HEDS_<major>_<minor>_PYTHON for the SDK 4 and newer)')
         return sdks[0]
     if version not in sdks:
         raise ImportError(f'The Holoeye SLM Display SDK {version} cannot be imported, '

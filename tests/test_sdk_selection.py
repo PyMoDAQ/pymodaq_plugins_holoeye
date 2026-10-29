@@ -146,3 +146,21 @@ def test_mock_plugin_still_works(qapp):
     assert plugin.initialized
     move_abs_and_wait(plugin, 0.5)
     plugin.close()
+
+
+def test_sdk4_folder_from_the_most_recent_variable(tmp_path):
+    import json
+    import os
+    import subprocess
+
+    env = dict(os.environ)
+    for version in ('4_0', '4_1', '3_0'):
+        (tmp_path / version / 'api' / 'python').mkdir(parents=True)
+        (tmp_path / version / 'examples').mkdir()
+        env[f'HEDS_{version}_PYTHON'] = str(tmp_path / version)
+    code = 'import sys, json, pymodaq_plugins_holoeye; print(json.dumps(sys.path))'
+    run = subprocess.run([sys.executable, '-c', code], env=env, cwd=tmp_path, capture_output=True, text=True)
+    path = json.loads(run.stdout.strip().splitlines()[-1])
+    assert str(tmp_path / '4_1' / 'api' / 'python') in path
+    assert str(tmp_path / '4_1' / 'examples') in path
+    assert not any(str(tmp_path / v) in p for v in ('4_0', '3_0') for p in path)
