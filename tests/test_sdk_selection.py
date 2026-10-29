@@ -148,21 +148,23 @@ def test_mock_plugin_still_works(qapp):
     plugin.close()
 
 
+def _geometry(plugin):
+    group = plugin.settings.child('shaper_geometry')
+    return [group[name] for name in ('width', 'height', 'pixel_size_x', 'pixel_size_y')]
+
+
 def test_shaper_geometry_sdk4(qapp, fake_sdk4):
     plugin = make_actuator(DAQ_Move_Holoeye, sdk='4')
-    geometry = plugin.get_shaper_geometry()
-    assert (geometry.width, geometry.height) == (8, 6)
-    assert geometry.shape == (6, 8)
-    assert geometry.pixel_size == (8., 8.)
+    assert _geometry(plugin) == [8, 6, 8., 8.]
     plugin.close()
 
 
 def test_shaper_geometry_mock(qapp):
     plugin = make_actuator(DAQ_Move_HoloeyeMock)
-    geometry = plugin.get_shaper_geometry()
-    assert (geometry.width, geometry.height) == (1024, 768)
-    assert geometry.pixel_size_x == 8.
+    assert _geometry(plugin) == [1024, 768, 8., 8.]
     plugin.close()
+
+
 def test_sdk4_folder_from_the_most_recent_variable(tmp_path):
     import json
     import os

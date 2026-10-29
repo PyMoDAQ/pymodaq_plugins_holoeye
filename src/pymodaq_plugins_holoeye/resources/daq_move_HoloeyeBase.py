@@ -1,4 +1,3 @@
-from types import SimpleNamespace
 from typing import List, Union, Tuple
 
 
@@ -20,17 +19,21 @@ from pymodaq_utils.math_utils import wrap
 
 from pymodaq_plugins_holoeye.hardware.sdk import SDK_CHOICES, NO_ERROR, get_slm_class
 
-try:
-    from pymodaq_plugins_beam_shaping.utilities.shaper import ShaperInterface, ShaperGeometry
-except ImportError:  # the BeamShaping extension is optional, the plugin provides the same information anyway
-    ShaperInterface = object
-    ShaperGeometry = None
-
 logger = set_logger(get_module_name(__file__))
 config = HoloConfig()
 
 
-class DAQ_Move_HoloeyeBase(ShaperInterface, DAQ_Move_base):
+# Read by the BeamShaping extension (group name and children names are the contract, see
+# pymodaq_plugins_beam_shaping.utilities.shaper.shaper_geometry_params), sizes in micrometer
+SHAPER_GEOMETRY = {'title': 'Shaper geometry:', 'name': 'shaper_geometry', 'type': 'group', 'children': [
+    {'title': 'Width (pixels):', 'name': 'width', 'type': 'int', 'value': 0, 'readonly': True},
+    {'title': 'Height (pixels):', 'name': 'height', 'type': 'int', 'value': 0, 'readonly': True},
+    {'title': 'Pixel size x (um):', 'name': 'pixel_size_x', 'type': 'float', 'value': 0., 'readonly': True},
+    {'title': 'Pixel size y (um):', 'name': 'pixel_size_y', 'type': 'float', 'value': 0., 'readonly': True},
+]}
+
+
+class DAQ_Move_HoloeyeBase(DAQ_Move_base):
 
     controller_class = None  # if None: the class of the SDK selected in the settings
     shaping_type: str = None
@@ -45,7 +48,6 @@ class DAQ_Move_HoloeyeBase(ShaperInterface, DAQ_Move_base):
         {'title': 'SLM Infos:', 'name': 'info', 'type': 'group', 'visible': True, 'children': [
             {'title': 'Width:', 'name': 'width', 'type': 'int', 'value': 0, 'readonly': True},
             {'title': 'Height:', 'name': 'height', 'type': 'int', 'value': 0, 'readonly': True},
-            {'title': 'Pixel size (um):', 'name': 'pixel_size', 'type': 'float', 'value': 0., 'readonly': True},
         ]},
         {'title': 'SDK version:', 'name': 'sdk', 'type': 'list', 'limits': SDK_CHOICES, 'value': 'auto',
          'tip': 'Holoeye SLM Display SDK to use, auto: the SDK 4 if installed, else the SDK 3'},
@@ -54,6 +56,7 @@ class DAQ_Move_HoloeyeBase(ShaperInterface, DAQ_Move_base):
         {'title': 'shaping options:', 'name': 'options', 'type': 'group', 'visible': True,
          'children': []},
         {'title': 'Input as grey:', 'name': 'input_as_grey_levels', 'type': 'bool', 'value': False},
+        SHAPER_GEOMETRY,
     ]
     params = comon_shaping_params + comon_parameters_fun(is_multiaxes, _axis_names, epsilon=_epsilon)
 
@@ -106,22 +109,17 @@ class DAQ_Move_HoloeyeBase(ShaperInterface, DAQ_Move_base):
 
         self.settings.child('info', 'width').setValue(data_width)
         self.settings.child('info', 'height').setValue(data_height)
-        self.settings.child('info', 'pixel_size').setValue(float(self.controller.pixelsize_um))
+        pixel_size = float(self.controller.pixelsize_um)
+        geometry = self.settings.child('shaper_geometry')
+        for name, value in (('width', data_width), ('height', data_height),
+                            ('pixel_size_x', pixel_size), ('pixel_size_y', pixel_size)):
+            geometry.child(name).setValue(value)
 
         self.current_position = DataActuator(data=[np.zeros(self.shape)])
 
         info = "Holoeye"
         initialized = True
         return info, initialized
-
-    def get_shaper_geometry(self):
-        """Number of pixels and pixel size (um) given by the SDK, see ShaperInterface of the BeamShaping extension"""
-        size = float(self.settings['info', 'pixel_size'])
-        width, height = int(self.settings['info', 'width']), int(self.settings['info', 'height'])
-        if ShaperGeometry is None:
-            return SimpleNamespace(width=width, height=height, shape=(height, width),
-                                   pixel_size_x=size, pixel_size_y=size, pixel_size=(size, size))
-        return ShaperGeometry(width, height, size, size)
 
     def create_controller(self):
         controller_class = self.controller_class
