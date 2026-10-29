@@ -47,7 +47,8 @@ Both the **SLM Display SDK (Python) 3** and **4** are supported, and can be inst
 find them through environment variables:
 
 * SDK 3: ``HEDS_<version>_PYTHON_MODULES`` (the last one, sorted by name, is used)
-* SDK 4: ``HEDS_4_0_PYTHON`` (the folders ``api/python`` and ``examples`` of the SDK are added to the python path)
+* SDK 4 and newer: ``HEDS_<major>_<minor>_PYTHON``, e.g. ``HEDS_4_0_PYTHON`` (the most recent version is used, its
+  folders ``api/python`` and ``examples`` are added to the python path)
 
 The ``SDK version`` setting of the plugins selects the one to use: ``auto`` (default) uses the SDK 4 if it is
 installed (more recent), else the SDK 3. With the SDK 4, the Holoeye preview window is not opened at initialization
