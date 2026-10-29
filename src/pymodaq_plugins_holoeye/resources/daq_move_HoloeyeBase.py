@@ -1,3 +1,4 @@
+from types import SimpleNamespace
 from typing import List, Union, Tuple
 
 
@@ -19,11 +20,17 @@ from pymodaq_utils.math_utils import wrap
 
 from pymodaq_plugins_holoeye.hardware.sdk import SDK_CHOICES, NO_ERROR, get_slm_class
 
+try:
+    from pymodaq_plugins_beam_shaping.utilities.shaper import ShaperInterface, ShaperGeometry
+except ImportError:  # the BeamShaping extension is optional, the plugin provides the same information anyway
+    ShaperInterface = object
+    ShaperGeometry = None
+
 logger = set_logger(get_module_name(__file__))
 config = HoloConfig()
 
 
-class DAQ_Move_HoloeyeBase(DAQ_Move_base):
+class DAQ_Move_HoloeyeBase(ShaperInterface, DAQ_Move_base):
 
     controller_class = None  # if None: the class of the SDK selected in the settings
     shaping_type: str = None
@@ -38,6 +45,7 @@ class DAQ_Move_HoloeyeBase(DAQ_Move_base):
         {'title': 'SLM Infos:', 'name': 'info', 'type': 'group', 'visible': True, 'children': [
             {'title': 'Width:', 'name': 'width', 'type': 'int', 'value': 0, 'readonly': True},
             {'title': 'Height:', 'name': 'height', 'type': 'int', 'value': 0, 'readonly': True},
+            {'title': 'Pixel size (um):', 'name': 'pixel_size', 'type': 'float', 'value': 0., 'readonly': True},
         ]},
         {'title': 'SDK version:', 'name': 'sdk', 'type': 'list', 'limits': SDK_CHOICES, 'value': 'auto',
          'tip': 'Holoeye SLM Display SDK to use, auto: the SDK 4 if installed, else the SDK 3'},
@@ -98,12 +106,22 @@ class DAQ_Move_HoloeyeBase(DAQ_Move_base):
 
         self.settings.child('info', 'width').setValue(data_width)
         self.settings.child('info', 'height').setValue(data_height)
+        self.settings.child('info', 'pixel_size').setValue(float(self.controller.pixelsize_um))
 
         self.current_position = DataActuator(data=[np.zeros(self.shape)])
 
         info = "Holoeye"
         initialized = True
         return info, initialized
+
+    def get_shaper_geometry(self):
+        """Number of pixels and pixel size (um) given by the SDK, see ShaperInterface of the BeamShaping extension"""
+        size = float(self.settings['info', 'pixel_size'])
+        width, height = int(self.settings['info', 'width']), int(self.settings['info', 'height'])
+        if ShaperGeometry is None:
+            return SimpleNamespace(width=width, height=height, shape=(height, width),
+                                   pixel_size_x=size, pixel_size_y=size, pixel_size=(size, size))
+        return ShaperGeometry(width, height, size, size)
 
     def create_controller(self):
         controller_class = self.controller_class
