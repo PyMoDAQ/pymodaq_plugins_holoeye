@@ -17,7 +17,7 @@ from pymodaq_plugins_holoeye import Config as HoloConfig
 from pymodaq_utils.logger import set_logger, get_module_name
 from pymodaq_utils.math_utils import wrap
 
-from holoeye.slmdisplaysdk import SLMInstance, ErrorCode
+from pymodaq_plugins_holoeye.hardware.sdk import SDK_CHOICES, NO_ERROR, get_slm_class
 
 logger = set_logger(get_module_name(__file__))
 config = HoloConfig()
@@ -25,7 +25,7 @@ config = HoloConfig()
 
 class DAQ_Move_HoloeyeBase(DAQ_Move_base):
 
-    controller_class = SLMInstance
+    controller_class = None  # if None: the class of the SDK selected in the settings
     shaping_type: str = None
     shaping_settings: List = []
 
@@ -39,6 +39,8 @@ class DAQ_Move_HoloeyeBase(DAQ_Move_base):
             {'title': 'Width:', 'name': 'width', 'type': 'int', 'value': 0, 'readonly': True},
             {'title': 'Height:', 'name': 'height', 'type': 'int', 'value': 0, 'readonly': True},
         ]},
+        {'title': 'SDK version:', 'name': 'sdk', 'type': 'list', 'limits': SDK_CHOICES, 'value': 'auto',
+         'tip': 'Holoeye SLM Display SDK to use, auto: the SDK 3 if installed, else the SDK 4'},
         {'title': 'Show Preview?:', 'name': 'show_preview', 'type': 'bool', 'value': False},
         {'title': 'Shaping type:', 'name': 'shaping_type', 'type': 'str', 'value': ''},
         {'title': 'shaping options:', 'name': 'options', 'type': 'group', 'visible': True,
@@ -81,14 +83,14 @@ class DAQ_Move_HoloeyeBase(DAQ_Move_base):
              daq_utils.ThreadCommand
         """
         if self.is_master:
-            self.controller = self.controller_class()
+            self.controller = self.create_controller()
         else:
             self.controller = controller
 
 
         if self.is_master:
             error = self.controller.open()
-            if error != ErrorCode.NoError:
+            if error != NO_ERROR:
                 raise IOError(f'SLM Error: {self.controller.errorString(error)}')
 
         data_width = self.controller.width_px
@@ -103,12 +105,18 @@ class DAQ_Move_HoloeyeBase(DAQ_Move_base):
         initialized = True
         return info, initialized
 
+    def create_controller(self):
+        controller_class = self.controller_class
+        if controller_class is None:
+            controller_class = get_slm_class(self.settings['sdk'])
+        return controller_class()
+
     def commit_settings(self, param):
         """Apply settings modification to the SLM
 
         To be implemented in real implementations
         """
-        if param.name() == 'show_preview':
+        if param.name() == 'show_preview' and self.controller is not None:
             self.controller.utilsSLMPreviewShow(param.value())
 
     @property

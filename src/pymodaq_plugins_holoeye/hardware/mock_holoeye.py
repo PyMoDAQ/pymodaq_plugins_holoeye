@@ -10,11 +10,14 @@ class SLMInstance:
     def __init__(self):
         pass
 
+    def close(self):
+        pass
+
     def open(self):
         return ErrorCode.NoError.value
 
-    def errorString(self, error_code: ErrorCode):
-        return error_code.name
+    def errorString(self, error_code):
+        return ErrorCode(error_code).name
 
     @property
     def width_px(self) -> int:

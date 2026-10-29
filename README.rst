@@ -41,4 +41,14 @@ Infos
 =====
 
 The SDK from Holoeye is required to operate those plugins. All plugins can also receive a numpy
-array directly to be loaded into the SLM. Working with **SLM Display SDK (Python) < 4.0.0**
+array directly to be loaded into the SLM.
+
+Both the **SLM Display SDK (Python) 3** and **4** are supported, and can be installed at the same time. The plugins
+find them through environment variables:
+
+* SDK 3: ``HEDS_<version>_PYTHON_MODULES`` (the last one, sorted by name, is used)
+* SDK 4: ``HEDS_4_0_PYTHON`` (the folders ``api/python`` and ``examples`` of the SDK are added to the python path)
+
+The ``SDK version`` setting of the plugins selects the one to use: ``auto`` (default) uses the SDK 3 if it is
+installed (as before), else the SDK 4. With the SDK 4, the Holoeye preview window is not opened at initialization
+(it can fail when authorizations are required), use the ``Show Preview?`` setting to open it.
