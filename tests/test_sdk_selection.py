@@ -148,20 +148,26 @@ def test_mock_plugin_still_works(qapp):
     plugin.close()
 
 
-def _geometry(plugin):
-    group = plugin.settings.child('shaper_geometry')
-    return [group[name] for name in ('width', 'height', 'pixel_size_x', 'pixel_size_y')]
+def _shaper(plugin):
+    from pymodaq_plugins_utils.hardware.shaper import Shaper, GEOMETRY_NAME, PROPERTIES_NAME
+    return Shaper.from_settings(plugin.settings.child(GEOMETRY_NAME), plugin.settings.child(PROPERTIES_NAME))
 
 
-def test_shaper_geometry_sdk4(qapp, fake_sdk4):
+def test_shaper_sdk4(qapp, fake_sdk4):
     plugin = make_actuator(DAQ_Move_Holoeye, sdk='4')
-    assert _geometry(plugin) == [8, 6, 8., 8.]
+    shaper = _shaper(plugin)
+    assert shaper.shape == (6, 8)
+    assert shaper.pixel_size == 8.
+    assert shaper.has_internal_calibration and shaper.use_internal_calibration
     plugin.close()
 
 
-def test_shaper_geometry_mock(qapp):
+def test_shaper_mock(qapp):
     plugin = make_actuator(DAQ_Move_HoloeyeMock)
-    assert _geometry(plugin) == [1024, 768, 8., 8.]
+    shaper = _shaper(plugin)
+    assert shaper.shape == (768, 1024)
+    assert shaper.pixel_size == 8.
+    assert shaper.has_internal_calibration
     plugin.close()
 
 

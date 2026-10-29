@@ -17,20 +17,11 @@ from pymodaq_plugins_holoeye import Config as HoloConfig
 from pymodaq_utils.logger import set_logger, get_module_name
 from pymodaq_utils.math_utils import wrap
 
+from pymodaq_plugins_utils.hardware.shaper import ModulatorType, shaper_params, fill_shaper_settings
 from pymodaq_plugins_holoeye.hardware.sdk import SDK_CHOICES, NO_ERROR, get_slm_class
 
 logger = set_logger(get_module_name(__file__))
 config = HoloConfig()
-
-
-# Read by the BeamShaping extension (group name and children names are the contract, see
-# pymodaq_plugins_beam_shaping.utilities.shaper.shaper_geometry_params), sizes in micrometer
-SHAPER_GEOMETRY = {'title': 'Shaper geometry:', 'name': 'shaper_geometry', 'type': 'group', 'children': [
-    {'title': 'Width (pixels):', 'name': 'width', 'type': 'int', 'value': 0, 'readonly': True},
-    {'title': 'Height (pixels):', 'name': 'height', 'type': 'int', 'value': 0, 'readonly': True},
-    {'title': 'Pixel size x (um):', 'name': 'pixel_size_x', 'type': 'float', 'value': 0., 'readonly': True},
-    {'title': 'Pixel size y (um):', 'name': 'pixel_size_y', 'type': 'float', 'value': 0., 'readonly': True},
-]}
 
 
 class DAQ_Move_HoloeyeBase(DAQ_Move_base):
@@ -56,8 +47,7 @@ class DAQ_Move_HoloeyeBase(DAQ_Move_base):
         {'title': 'shaping options:', 'name': 'options', 'type': 'group', 'visible': True,
          'children': []},
         {'title': 'Input as grey:', 'name': 'input_as_grey_levels', 'type': 'bool', 'value': False},
-        SHAPER_GEOMETRY,
-    ]
+    ] + shaper_params()
     params = comon_shaping_params + comon_parameters_fun(is_multiaxes, _axis_names, epsilon=_epsilon)
 
     def ini_attributes(self):
@@ -110,10 +100,9 @@ class DAQ_Move_HoloeyeBase(DAQ_Move_base):
         self.settings.child('info', 'width').setValue(data_width)
         self.settings.child('info', 'height').setValue(data_height)
         pixel_size = float(self.controller.pixelsize_um)
-        geometry = self.settings.child('shaper_geometry')
-        for name, value in (('width', data_width), ('height', data_height),
-                            ('pixel_size_x', pixel_size), ('pixel_size_y', pixel_size)):
-            geometry.child(name).setValue(value)
+        # showPhasevalues / showPhaseData convert phase to grey levels inside the SDK
+        fill_shaper_settings(self.settings, 'Holoeye', data_width, data_height, pixel_size,
+                             modulator_type=ModulatorType.PHASE, has_internal_calibration=True)
 
         self.current_position = DataActuator(data=[np.zeros(self.shape)])
 
