@@ -19,6 +19,8 @@ class SLMInstance:
     def errorString(self, error_code):
         return ErrorCode(error_code).name
 
+    pixelsize_um = 8.
+
     @property
     def width_px(self) -> int:
         return 1024

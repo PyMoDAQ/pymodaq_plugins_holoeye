@@ -17,6 +17,7 @@ from pymodaq_plugins_holoeye import Config as HoloConfig
 from pymodaq_utils.logger import set_logger, get_module_name
 from pymodaq_utils.math_utils import wrap
 
+from pymodaq_plugins_utils.hardware.shaper import ModulatorType, shaper_params, fill_shaper_settings
 from pymodaq_plugins_holoeye.hardware.sdk import SDK_CHOICES, NO_ERROR, get_slm_class
 
 logger = set_logger(get_module_name(__file__))
@@ -46,7 +47,7 @@ class DAQ_Move_HoloeyeBase(DAQ_Move_base):
         {'title': 'shaping options:', 'name': 'options', 'type': 'group', 'visible': True,
          'children': []},
         {'title': 'Input as grey:', 'name': 'input_as_grey_levels', 'type': 'bool', 'value': False},
-    ]
+    ] + shaper_params()
     params = comon_shaping_params + comon_parameters_fun(is_multiaxes, _axis_names, epsilon=_epsilon)
 
     def ini_attributes(self):
@@ -98,6 +99,10 @@ class DAQ_Move_HoloeyeBase(DAQ_Move_base):
 
         self.settings.child('info', 'width').setValue(data_width)
         self.settings.child('info', 'height').setValue(data_height)
+        pixel_size = float(self.controller.pixelsize_um)
+        # showPhasevalues / showPhaseData convert phase to grey levels inside the SDK
+        fill_shaper_settings(self.settings, 'Holoeye', data_width, data_height, pixel_size,
+                             modulator_type=ModulatorType.PHASE, has_internal_calibration=True)
 
         self.current_position = DataActuator(data=[np.zeros(self.shape)])
 
