@@ -1,6 +1,5 @@
 
 import pymodaq_plugins_holoeye  # mandatory if not imported from somewhere else to load holeye module from local install
-from holoeye import slmdisplaysdk
 
 
 from pymodaq.control_modules.move_utility_classes import  main
